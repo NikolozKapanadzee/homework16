@@ -7,7 +7,7 @@ const getAllProducts = async (req: Request, res: Response) => {
   res.json(products);
 };
 const createProduct = async (req: Request, res: Response) => {
-  const { error } = productsSchema.validate(req.body || {}, {
+  const { error, value } = productsSchema.validate(req.body || {}, {
     abortEarly: false,
   });
   console.log(error);
@@ -17,7 +17,9 @@ const createProduct = async (req: Request, res: Response) => {
     });
     return;
   }
-  res.send("gamarjoba msofliov");
+  const newProduct = await ProductModel.create(value);
+  console.log("product created:", newProduct);
+  res.status(201).json(newProduct);
 };
 
 export { getAllProducts, createProduct };
