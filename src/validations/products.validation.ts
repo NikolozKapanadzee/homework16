@@ -6,5 +6,11 @@ const productsSchema = Joi.object({
   price: Joi.number().required(),
   image: Joi.string().required(),
   category: Joi.string().required(),
-});
-export default productsSchema;
+}).unknown(false);
+
+const updateProductSchema = productsSchema.fork(
+  ["title", "caption", "price", "image", "category"],
+  (schema) => schema.optional()
+);
+
+export { productsSchema, updateProductSchema };

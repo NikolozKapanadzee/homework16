@@ -6,7 +6,11 @@ const app = express();
 const port = 3000;
 app.use(express.json());
 
-app.use("/", productsRouter);
+app.use("/products", productsRouter);
+
+app.get("/", (req: Request, res: Response) => {
+  res.send("Hello From Georgia");
+});
 
 const startServer = async () => {
   await connectDB();
