@@ -11,10 +11,14 @@ const getAllProducts = async (req: Request, res: Response) => {
   res.json(products);
 };
 const createProduct = async (req: Request, res: Response) => {
-  const { error, value } = productsSchema.validate(req.body || {}, {
+  const imageUrl = (req.file as Express.Multer.File)?.path;
+  const bodyToValidate = {
+    ...req.body,
+    image: imageUrl,
+  };
+  const { error, value } = productsSchema.validate(bodyToValidate || {}, {
     abortEarly: false,
   });
-  console.log(error);
   if (error) {
     res.status(400).json({
       error: error.details.map((err) => err.message),
@@ -25,6 +29,7 @@ const createProduct = async (req: Request, res: Response) => {
   console.log("product created:", newProduct);
   res.status(201).json(newProduct);
 };
+
 const updateProduct = async (req: Request, res: Response) => {
   const { error, value } = updateProductSchema.validate(req.body || {}, {
     abortEarly: false,
