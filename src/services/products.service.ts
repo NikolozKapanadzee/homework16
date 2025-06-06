@@ -65,5 +65,22 @@ const deleteProduct = async (req: Request, res: Response) => {
   }
   res.status(200).json({ message: "product deleted", deletedProduct });
 };
+const getProductById = async (req: Request, res: Response) => {
+  const productId = req.params.id;
+  if (!isValidObjectId(productId)) {
+    res.status(400).json({ error: "wrong id is provided" });
+  }
+  const product = await ProductModel.findById(productId);
+  if (!product) {
+    res.status(404).json({ error: "product not found" });
+  }
+  res.status(200).json({ product });
+};
 
-export { getAllProducts, createProduct, updateProduct, deleteProduct };
+export {
+  getAllProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  getProductById,
+};
