@@ -9,7 +9,7 @@ import { CloudinaryImageTypes } from "../types/index";
 import { v2 as cloudinary } from "cloudinary";
 
 const getAllProducts = async (req: Request, res: Response): Promise<void> => {
-  const { category, price } = req.query;
+  const { category, price, page = 1, limit = 30 } = req.query;
   const filter: Record<string, unknown> = {};
   if (category) {
     filter.category = category;
@@ -20,7 +20,13 @@ const getAllProducts = async (req: Request, res: Response): Promise<void> => {
   } else if (price === "desc") {
     sort.price = -1;
   }
-  const products = await ProductModel.find(filter).sort(sort);
+  const pageNum = Math.max(Number(page), 1);
+  const limitNum = Math.min(Math.max(Number(limit), 1), 30);
+  const skip = (pageNum - 1) * limitNum;
+  const products = await ProductModel.find(filter)
+    .sort(sort)
+    .skip(skip)
+    .limit(limitNum);
   if (category && products.length === 0) {
     res.status(404).json({ error: `${category} category not found` });
     return;
