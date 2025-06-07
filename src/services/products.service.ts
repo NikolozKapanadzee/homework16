@@ -8,8 +8,23 @@ import {
 import { CloudinaryImageTypes } from "../types/index";
 import { v2 as cloudinary } from "cloudinary";
 
-const getAllProducts = async (req: Request, res: Response) => {
-  const products = await ProductModel.find();
+const getAllProducts = async (req: Request, res: Response): Promise<void> => {
+  const { category, price } = req.query;
+  const filter: Record<string, unknown> = {};
+  if (category) {
+    filter.category = category;
+  }
+  const sort: Record<string, 1 | -1> = {};
+  if (price === "asc") {
+    sort.price = 1;
+  } else if (price === "desc") {
+    sort.price = -1;
+  }
+  const products = await ProductModel.find(filter).sort(sort);
+  if (category && products.length === 0) {
+    res.status(404).json({ error: `${category} category not found` });
+    return;
+  }
   res.json(products);
 };
 const createProduct = async (req: Request, res: Response) => {
