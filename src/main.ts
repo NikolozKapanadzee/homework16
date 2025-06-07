@@ -11,7 +11,6 @@ app.use("/products", productsRouter);
 app.get("/", (req: Request, res: Response) => {
   res.send("Hello From Georgia");
 });
-
 const startServer = async () => {
   await connectDB();
   app.listen(port, () => {
