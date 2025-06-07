@@ -11,7 +11,7 @@ const productsRouter = Router();
 
 productsRouter.get("/", getAllProducts);
 productsRouter.post("/", upload.single("image"), createProduct);
-productsRouter.put("/:id", updateProduct);
+productsRouter.put("/:id", upload.single("image"), updateProduct);
 productsRouter.delete("/:id", deleteProduct);
 productsRouter.get("/:id", getProductById);
 

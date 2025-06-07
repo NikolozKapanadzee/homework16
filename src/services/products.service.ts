@@ -5,70 +5,131 @@ import {
   productsSchema,
   updateProductSchema,
 } from "../validations/products.validation";
+import { CloudinaryImageTypes } from "../types/index";
+import { v2 as cloudinary } from "cloudinary";
 
 const getAllProducts = async (req: Request, res: Response) => {
   const products = await ProductModel.find();
   res.json(products);
 };
 const createProduct = async (req: Request, res: Response) => {
-  const imageUrl = (req.file as Express.Multer.File)?.path;
-  const bodyToValidate = {
-    ...req.body,
-    image: imageUrl,
-  };
-  const { error, value } = productsSchema.validate(bodyToValidate || {}, {
-    abortEarly: false,
-  });
-  if (error) {
-    res.status(400).json({
-      error: error.details.map((err) => err.message),
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: "Image is required" });
+      return;
+    }
+    const newImage: CloudinaryImageTypes = {
+      url: req.file.path,
+      public_id: req.file.filename,
+    };
+    const bodyToValidate = {
+      ...req.body,
+      image: newImage,
+    };
+    const { error, value } = productsSchema.validate(bodyToValidate, {
+      abortEarly: false,
     });
-    return;
+    if (error) {
+      res.status(400).json({ error: error.details.map((err) => err.message) });
+      return;
+    }
+    const newProduct = await ProductModel.create(value);
+    res.status(201).json(newProduct);
+  } catch (err) {
+    console.error("Create product error:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
-  const newProduct = await ProductModel.create(value);
-  console.log("product created:", newProduct);
-  res.status(201).json(newProduct);
 };
 
-const updateProduct = async (req: Request, res: Response) => {
-  const { error, value } = updateProductSchema.validate(req.body || {}, {
-    abortEarly: false,
-    allowUnknown: false,
-  });
-  if (error) {
-    res.status(400).json({
-      error: error.details.map((err) => err.message),
+const updateProduct = async (req: Request, res: Response): Promise<void> => {
+  console.log("req.body raw:", req.body);
+  const extractPublicId = (url: string): string => {
+    const parts = url.split("/");
+    const filename = parts[parts.length - 1];
+    return filename.split(".")[0];
+  };
+  try {
+    const file = req.file as Express.Multer.File | undefined;
+    const imageUrl = file?.path;
+    const { error, value } = updateProductSchema.validate(req.body || {}, {
+      abortEarly: false,
+      allowUnknown: false,
     });
-    return;
+    if (error) {
+      res.status(400).json({
+        error: error.details.map((err) => err.message),
+      });
+      return;
+    }
+    const productId = req.params.id;
+    if (!isValidObjectId(productId)) {
+      res.status(400).json({ error: "wrong ID is provided" });
+      return;
+    }
+    const existingProduct = await ProductModel.findById(productId);
+    if (!existingProduct) {
+      res.status(404).json({ error: "Product not found" });
+      return;
+    }
+    if (imageUrl) {
+      const oldPublicId: string | undefined = existingProduct.image?.public_id;
+      if (oldPublicId) {
+        try {
+          await cloudinary.uploader.destroy(oldPublicId);
+        } catch (err) {
+          console.error("failed to delete image from Cloudinary:", err);
+        }
+      }
+      const newImage: CloudinaryImageTypes = {
+        url: imageUrl,
+        public_id: extractPublicId(imageUrl),
+      };
+      value.image = newImage;
+    }
+    const updatedProduct = await ProductModel.findByIdAndUpdate(
+      productId,
+      {
+        $set: value,
+        $inc: { __v: 1 },
+      },
+      { new: true }
+    );
+    console.log("Validated update fields:", value);
+    res.status(200).json({
+      message: "Product updated",
+      updatedProduct,
+    });
+  } catch (err) {
+    console.error("update product error:", err);
+    res.status(500).json({ error: "internal server error" });
   }
-  const productId = req.params.id;
-  if (!isValidObjectId(productId)) {
-    res.status(400).json({ error: "wrong id is provided" });
-  }
-  const updatedProduct = await ProductModel.findByIdAndUpdate(
-    productId,
-    {
-      $set: value,
-      $inc: { __v: 1 },
-    },
-    { new: true }
-  );
-  if (!updatedProduct) {
-    res.status(404).json({ error: "product not found" });
-    return;
-  }
-  res.status(200).json({ message: "product updated", updatedProduct });
 };
 const deleteProduct = async (req: Request, res: Response) => {
-  const productId = req.params.id;
-  if (!isValidObjectId(productId)) {
-    res.status(400).json({ error: "wrong id is provided" });
+  try {
+    const productId = req.params.id;
+    if (!isValidObjectId(productId)) {
+      res.status(400).json({ error: "wrong id is provided" });
+      return;
+    }
+    const productToDelete = await ProductModel.findById(productId);
+    if (!productToDelete) {
+      res.status(404).json({ error: "product not found" });
+      return;
+    }
+    if (productToDelete.image?.public_id) {
+      const fullPublicId = `uploads/${productToDelete.image.public_id}`;
+      const deleteResult = await cloudinary.uploader.destroy(fullPublicId);
+      console.log("cloudinary delete result:", deleteResult);
+    }
+    const deletedProduct = await ProductModel.findByIdAndDelete(productId);
+    res.status(200).json({
+      message: "product and image deleted successfully",
+      deletedProduct,
+    });
+  } catch (err) {
+    console.error("Delete product error:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
-  const deletedProduct = await ProductModel.findByIdAndDelete(productId);
-  if (!deletedProduct) {
-    res.status(404).json({ error: "product not found" });
-  }
-  res.status(200).json({ message: "product deleted", deletedProduct });
 };
 const getProductById = async (req: Request, res: Response) => {
   const productId = req.params.id;

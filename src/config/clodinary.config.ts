@@ -14,14 +14,14 @@ const storage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => ({
     folder: "uploads",
-    // public_id: `${Date.now()}-${file.originalname}`,
+    public_id: `product_${Date.now()}`,
   }),
 });
 
 const upload = multer({
   storage,
   limits: {
-    fileSize: 2 * 1024 + 1024,
+    fileSize: 10 * 1024 * 1024,
   },
 });
 

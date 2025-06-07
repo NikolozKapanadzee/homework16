@@ -1,10 +1,15 @@
 import Joi from "joi";
 
+const imageSchema = Joi.object({
+  url: Joi.string().uri().required(),
+  public_id: Joi.string().required(),
+});
+
 const productsSchema = Joi.object({
   title: Joi.string().required(),
   caption: Joi.string().required(),
   price: Joi.number().required(),
-  image: Joi.string().required(),
+  image: imageSchema.required(),
   category: Joi.string().required(),
 }).unknown(false);
 

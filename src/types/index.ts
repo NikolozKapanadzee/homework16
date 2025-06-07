@@ -1,7 +1,12 @@
-interface IProducts {
+export interface CloudinaryImageTypes {
+  url: string;
+  public_id: string;
+}
+
+export interface IProducts {
   title: string;
   caption: string;
   price: number;
-  image: string;
+  image: CloudinaryImageTypes;
   category: string;
 }
