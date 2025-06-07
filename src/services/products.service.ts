@@ -94,7 +94,6 @@ const updateProduct = async (req: Request, res: Response): Promise<void> => {
       },
       { new: true }
     );
-    console.log("Validated update fields:", value);
     res.status(200).json({
       message: "Product updated",
       updatedProduct,
@@ -119,7 +118,6 @@ const deleteProduct = async (req: Request, res: Response) => {
     if (productToDelete.image?.public_id) {
       const fullPublicId = `uploads/${productToDelete.image.public_id}`;
       const deleteResult = await cloudinary.uploader.destroy(fullPublicId);
-      console.log("cloudinary delete result:", deleteResult);
     }
     const deletedProduct = await ProductModel.findByIdAndDelete(productId);
     res.status(200).json({
