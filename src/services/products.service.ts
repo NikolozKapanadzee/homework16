@@ -174,6 +174,32 @@ const getProductById = async (req: Request, res: Response) => {
   }
   res.status(200).json({ product });
 };
+const addReview = async (req: Request, res: Response) => {
+  const productId = req.params.id;
+  if (!isValidObjectId(productId)) {
+    res.status(400).json({ error: "wrong id is provided" });
+    return;
+  }
+  const product = await ProductModel.findById(productId);
+  if (!product) {
+    res.status(404).json({ error: "product not found" });
+    return;
+  }
+  const email = req.headers.email as string;
+  const { rating, comment } = req.body;
+  if (!rating || !comment) {
+    res.status(400).json({ error: "Missing review fields" });
+    return;
+  }
+  if (!product.reviews) {
+    product.reviews = [];
+  }
+  product.reviews.push({ email, rating, comment });
+  await product.save();
+  res.status(201).json({ message: "Review added", product });
+};
+
+//clodinaryze gamichirda mushaoba  erti office hour davutmot kidev ertxel
 
 export {
   getAllProducts,
@@ -181,4 +207,5 @@ export {
   updateProduct,
   deleteProduct,
   getProductById,
+  addReview,
 };
