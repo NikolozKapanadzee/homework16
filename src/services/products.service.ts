@@ -9,30 +9,43 @@ import { CloudinaryImageTypes } from "../types/index";
 import { v2 as cloudinary } from "cloudinary";
 
 const getAllProducts = async (req: Request, res: Response): Promise<void> => {
-  const { category, price, page = 1, limit = 30 } = req.query;
-  const filter: Record<string, unknown> = {};
-  if (category) {
-    filter.category = category;
+  try {
+    const { category, price, page = 1, limit = 30, search } = req.query;
+    const filter: Record<string, unknown> = {};
+    if (typeof category === "string" && category.trim()) {
+      filter.category = category.trim();
+    }
+    if (typeof search === "string" && search.trim()) {
+      const term = search.trim();
+      filter.title = { $regex: "^" + term, $options: "i" };
+    }
+    //aq ver mivxvdi sad unda gvedzebna da marto title shi ra sityvacaa iq edzebs, anu sityvaze mountain ro eweros captionshi ar modzebnis marto titleshi edzebs
+    const sort: Record<string, 1 | -1> = {};
+    if (price === "asc") {
+      sort.price = 1;
+    } else if (price === "desc") {
+      sort.price = -1;
+    }
+    const pageNum = Math.max(Number(page), 1);
+    const limitNum = Math.min(Math.max(Number(limit), 1), 30);
+    const skip = (pageNum - 1) * limitNum;
+    const products = await ProductModel.find(filter)
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNum);
+    if (category && products.length === 0) {
+      res
+        .status(404)
+        .json({ error: `No products found in category '${filter.category}'` });
+      return;
+    }
+    res.json(products);
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
-  const sort: Record<string, 1 | -1> = {};
-  if (price === "asc") {
-    sort.price = 1;
-  } else if (price === "desc") {
-    sort.price = -1;
-  }
-  const pageNum = Math.max(Number(page), 1);
-  const limitNum = Math.min(Math.max(Number(limit), 1), 30);
-  const skip = (pageNum - 1) * limitNum;
-  const products = await ProductModel.find(filter)
-    .sort(sort)
-    .skip(skip)
-    .limit(limitNum);
-  if (category && products.length === 0) {
-    res.status(404).json({ error: `${category} category not found` });
-    return;
-  }
-  res.json(products);
 };
+
 const createProduct = async (req: Request, res: Response) => {
   try {
     if (!req.file) {
